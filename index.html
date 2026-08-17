@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Londres de Sherlock Holmes — Carte interactive canon</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- ÉCRAN TITRE -->
+<div id="splash">
+  <div class="splash-inner">
+    <div class="splash-eyebrow" id="splashEyebrow">D'après les 4 romans &amp; 56 nouvelles de Sir Arthur Conan Doyle</div>
+    <h1>LE LONDRES DE<br><span>SHERLOCK HOLMES</span></h1>
+    <div class="splash-rule"></div>
+    <p class="splash-sub" id="splashSub">Une carte interactive canon-first · 1881 – 1914<br>Chaque lieu est sourcé par une citation du texte original.</p>
+    <button id="enterBtn">ENTRER DANS LE BROUILLARD</button>
+    <div class="splash-quote">« It is a hobby of mine to have an exact knowledge of London. »<br><em>— Sherlock Holmes, The Red-Headed League</em></div>
+  </div>
+</div>
+
+<!-- BARRE SUPÉRIEURE -->
+<header id="topbar" class="hidden">
+  <div class="brand">🎩 <b>LE LONDRES DE SHERLOCK HOLMES</b><span class="ed">ÉDITION CANON</span></div>
+  <nav id="modes">
+    <button class="mode-btn active" data-mode="explore">🗺️ Explorer</button>
+    <button class="mode-btn" data-mode="cases">🗂️ Affaires</button>
+    <button class="mode-btn" data-mode="chases">🐎 Poursuites</button>
+    <button class="mode-btn" data-mode="timeline">⏳ Chronologie</button>
+    <button class="mode-btn" data-mode="annex">🏠 Annexes</button>
+    <button class="mode-btn" data-mode="games">🎲 Jeux</button>
+    <button class="mode-btn" data-mode="about">📜 Méthode</button>
+  </nav>
+  <select id="storyFilter"><option value="">— Tous les récits —</option></select>
+  <input id="search" type="search" placeholder="Rechercher un lieu, un récit… (ex : Baker, SIGN)">
+  <button id="ambienceBtn" title="Ambiance sonore : pluie sur Baker Street">🔇</button>
+  <select id="baseSelect" title="Fond de carte"></select>
+  <button id="langBtn" title="Français / English">EN</button>
+</header>
+
+<!-- CARTE -->
+<div id="map" class="hidden"></div>
+<div id="vignette" class="hidden"></div>
+<div id="grain" class="hidden"></div>
+
+<!-- FILTRES CATÉGORIES -->
+<div id="filters" class="hidden"></div>
+
+<!-- PANNEAU LATÉRAL LIEU -->
+<aside id="panel">
+  <button id="panelClose">✕</button>
+  <div id="panelImgWrap"><img id="panelImg" alt=""><div id="panelImgCap"></div></div>
+  <div id="panelBody">
+    <div id="panelBadges"></div>
+    <h2 id="panelName"></h2>
+    <blockquote id="panelQuote"></blockquote>
+    <div id="panelRef"></div>
+    <p id="panelDesc"></p>
+    <div id="panelFun"></div>
+    <div id="panelStories"></div>
+  </div>
+</aside>
+
+<!-- PANNEAU POURSUITES -->
+<aside id="chasePanel" class="hidden">
+  <h3>🐎 POURSUITES ANIMÉES</h3>
+  <p class="chase-hint">Rejouez les courses du canon sur la carte, étape par étape.</p>
+  <div id="chaseList"></div>
+  <div id="chaseStatus"></div>
+</aside>
+
+<!-- PANNEAU AFFAIRES (scrollytelling) -->
+<aside id="casePanel" class="hidden">
+  <div id="caseHome">
+    <h3>🗂️ LES GRANDES AFFAIRES</h3>
+    <p class="chase-hint">Rejouez six enquêtes du canon, étape par étape, sur la carte.</p>
+    <div id="caseList"></div>
+  </div>
+  <div id="caseView" class="hidden">
+    <button id="caseBack">← Toutes les affaires</button>
+    <div id="caseHeader"></div>
+    <div id="caseStepCard"></div>
+    <div id="caseNav">
+      <button id="stepPrev">◀ Précédent</button>
+      <span id="stepDots"></span>
+      <button id="stepNext">Suivant ▶</button>
+    </div>
+  </div>
+</aside>
+
+<!-- TIMELINE -->
+<div id="timelinePanel" class="hidden">
+  <div class="tl-head">⏳ <b>CHRONOLOGIE DU CANON</b> <span id="tlYear">1874 – 1914</span></div>
+  <input id="tlSlider" type="range" min="1874" max="1914" value="1914" step="1">
+  <div class="tl-legend">Glissez : la carte ne montre que les lieux des affaires antérieures ou égales à l'année choisie. <span id="tlInfo"></span></div>
+</div>
+
+<!-- PANNEAU ANNEXES -->
+<aside id="annexPanel" class="hidden">
+  <h3>🏠 ANNEXES IMMERSIVES</h3>
+  <div class="annex-card" id="annexBtn221b"><b>🛋️ Le salon du 221B</b>
+    <p>Explorez la pièce la plus célèbre de la littérature : 14 objets canoniques cliquables.</p></div>
+  <div class="annex-card" id="annexBtnThames"><b>⚓ La poursuite de l'Aurora</b>
+    <p>La chasse fluviale de SIGN rejouée en 8 étapes commentées, de Westminster aux marais.</p></div>
+  <div class="annex-card" id="annexBtnEngland"><b>🗺️ L'Angleterre des affaires</b>
+    <p>Dartmoor, Stoke Moran, Reichenbach… 12 hauts lieux du canon hors de Londres.</p></div>
+</aside>
+
+<!-- OVERLAY SALON 221B -->
+<div id="roomOverlay" class="hidden">
+  <div id="roomStage">
+    <button class="ov-close" data-ov="roomOverlay">✕ Retour à la carte</button>
+    <div id="roomImgWrap">
+      <img id="roomImg" src="assets/img/annex_221b_room.jpg" alt="Le salon du 221B Baker Street">
+      <div id="roomHotspots"></div>
+    </div>
+    <div id="roomSide">
+      <div class="room-head">🛋️ LE SALON DU 221B<br><span>« A single large airy sitting-room » — STUD</span></div>
+      <div id="roomDetail"><p class="room-hint">Cliquez sur un point doré pour découvrir chaque objet du canon — les 14 sont sourcés par citation.</p></div>
+      <div id="roomProgress"></div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY TAMISE -->
+<div id="thamesOverlay" class="hidden">
+  <div id="thamesStage">
+    <button class="ov-close" data-ov="thamesOverlay">✕ Retour à la carte</button>
+    <div id="thamesMap"></div>
+    <div id="thamesSide">
+      <div class="room-head">⚓ LA POURSUITE DE L'AURORA<br><span>The Sign of the Four, ch. 10</span></div>
+      <div id="thamesDetail"></div>
+      <div id="thamesNav">
+        <button id="thPrev">◀</button><span id="thDots"></span><button id="thNext">▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- PANNEAU JEUX -->
+<aside id="gamesPanel" class="hidden">
+  <div id="gamesHome">
+    <h3>🎲 LES JEUX DE BAKER STREET</h3>
+    <div class="annex-card" id="gBtnHunt"><b>♟️ La Chasse à Moriarty</b>
+      <p>5 énigmes, 5 lieux à retrouver sur la carte, dans l'ordre. L'ombre du Professeur vous attend.</p></div>
+    <div class="annex-card" id="gBtnQuiz"><b>🧠 Quiz « Élémentaire ! »</b>
+      <p>20 questions géolocalisées sur le canon. Grades : de Client du 221B à l'Égal de Mycroft.</p></div>
+    <div class="annex-card" id="gBtnFog"><b>🌫️ Le Brouillard de Londres</b>
+      <p>La carte disparaît sous la purée de pois. Explorez pour révéler les lieux, un à un.</p></div>
+    <div class="annex-card" id="gBtnMissions"><b>🧢 Les Missions des Irréguliers</b>
+      <p>Wiggins vous confie 8 repérages chronométrés. Gagnez vos shillings !</p></div>
+  </div>
+  <div id="gameView" class="hidden">
+    <button id="gameBack">← Tous les jeux</button>
+    <div id="gameBody"></div>
+  </div>
+</aside>
+<!-- PANNEAU MÉTHODE -->
+<aside id="aboutPanel" class="hidden">
+  <h3>📜 LA MÉTHODE CANON-FIRST</h3>
+  <p>Cette carte est construite selon une règle absolue : <b>aucun lieu sans citation du texte original</b> d'Arthur Conan Doyle (éditions Project Gutenberg, domaine public).</p>
+  <p><span class="badge b-canon">CANON</span> Lieu réel de Londres, nommé dans le texte.</p>
+  <p><span class="badge b-deduit">POSITION DÉDUITE</span> Adresse fictive (221B, Saxe-Coburg Square…) : géolocalisation argumentée d'après les indices du texte et l'érudition sherlockienne.</p>
+  <p>Corpus analysé : <b>685 000 mots</b> — A Study in Scarlet, The Sign of the Four, les 5 recueils de nouvelles, The Hound of the Baskervilles, The Valley of Fear.</p>
+  <h3 style="margin-top:1rem">🔊 LES VOIX DU CANON</h3>
+  <p style="font-size:.74rem;color:var(--dim)">Huit répliques emblématiques, lues par les voix de la carte. Elles se déclenchent aussi automatiquement sur les lieux marqués d'un ♪.</p>
+  <div id="voiceGallery"></div>
+  <p class="build">Projet complet — 106 lieux sourcés · 6 affaires rejouées (44 étapes) · 3 poursuites animées · 3 annexes immersives (salon du 221B, Tamise, Angleterre) · 4 jeux · chronologie 1874-1914 · 140 illustrations originales · 8 citations audio.<br><br>
+  Méthode canon-first : corpus intégral Project Gutenberg (685 000 mots), chaque citation vérifiée dans le texte avant intégration. Textes originaux : domaine public · Cartes historiques : National Library of Scotland (CC-BY) · Illustrations et lectures audio : créations originales de l'éditeur.</p>
+</aside>
+
+<!-- LÉGENDE STATUT -->
+<div id="statusbar" class="hidden"><span id="locCount"></span> lieux affichés · <span class="badge b-canon">canon</span> <span class="badge b-deduit">déduit</span></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data/locations.js"></script>
+<script src="data/locations_p1.js"></script>
+<script src="data/cases.js"></script>
+<script src="data/annexes.js"></script>
+<script src="data/games.js"></script>
+<script src="data/quotes_fr.js"></script>
+<script src="data/i18n_en_locations.js"></script>
+<script src="data/i18n_en_content.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
